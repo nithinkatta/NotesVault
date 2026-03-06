@@ -7,14 +7,15 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     """Application configuration loaded from environment."""
 
-    # Storage / data backends
-    use_local_store: bool = True  # toggle off to use DynamoDB/S3
-    data_dir: str = "data"
-    uploads_dir: str = "data/uploads"
+    # Database (MongoDB)
+    mongo_uri: str = "mongodb://localhost:27017"
+    mongo_db: str = "notes"
+    mongo_collection: str = "notes"
 
-    # AWS (used when use_local_store=False)
+    # File uploads (local vs S3)
+    use_local_uploads: bool = True  # toggle off to use S3 for uploads
+    uploads_dir: str = "data/uploads"
     aws_region: str = "us-east-1"
-    dynamo_table: str = "notes"
     s3_bucket: str = "ai-notes-media"
 
     # API + AI
