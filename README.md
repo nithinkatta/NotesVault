@@ -1,9 +1,11 @@
 ## AI Notes Vault
 
-Full-stack notes app with FastAPI backend and React + Vite frontend. Supports note CRUD, file uploads (local or S3 via presigned URLs), and AI helpers for summarization, OCR, and transcription using OpenAI.
+Full-stack notes app with FastAPI backend and React + Vite frontend. Supports note CRUD, file uploads (local or S3 via presigned URLs), and AI helpers for summarization, OCR, and transcription using Google Gemini.
+
+![AI Notes Vault UI](assets/ai-notes-screenshot.png)
 
 ### Tech Stack
-- Backend: FastAPI, MongoDB (Motor), Pydantic Settings, HTTPX, OpenAI SDK
+- Backend: FastAPI, MongoDB (Motor), Pydantic Settings, HTTPX, Google Gemini SDK
 - Frontend: React, TypeScript, Vite
 - Storage: MongoDB for notes; uploads served locally or via S3 presigned URLs
 
@@ -17,7 +19,8 @@ python -m venv .venv
 pip install -r requirements.txt
 cp .env.example .env
 # set MONGO_URI="mongodb://localhost:27017"
-# set OPENAI_API_KEY=...
+# set GEMINI_API_KEY=...
+# optional: set GEMINI_MODEL="gemini-1.5-flash-latest"
 # optional: docker run -d -p 27017:27017 --name mongo mongo:6
 uvicorn app.main:app --reload
 ```
@@ -33,8 +36,8 @@ Backend settings come from environment or `.env`:
 - `MONGO_URI` (e.g., `mongodb://localhost:27017`)
 - `MONGO_DB` (default `notes`)
 - `MONGO_COLLECTION` (default `notes`)
-- `OPENAI_API_KEY` (required for AI routes)
-- `OPENAI_MODEL` (defaults to `gpt-4o-mini`)
+- `GEMINI_API_KEY` (required for AI routes)
+- `GEMINI_MODEL` (defaults to `gemini-1.5-flash-latest`)
 - `USE_LOCAL_UPLOADS` (default True). Set False to use S3 for uploads.
 - `AWS_REGION`, `S3_BUCKET` (when S3 uploads are enabled)
 - `ALLOWED_ORIGINS` (CORS whitelist)
@@ -50,7 +53,7 @@ Backend settings come from environment or `.env`:
 - `FastAPI` app with `APIRouter` modules for `notes` and `ai`.
 - Dependency Injection (`Depends`): settings, Mongo collection (Motor client), note repository.
 - Request/response models: Pydantic schemas validate payloads and serialize responses.
-- Async I/O: Mongo access via Motor; AI calls via OpenAI SDK; HTTPX for fetches.
+- Async I/O: Mongo access via Motor; AI calls via Google Gemini SDK; HTTPX for fetches.
 - Middleware: CORS configured from settings.
 - Static mount `/static` serves uploaded files when in local mode.
 - Startup event: ensures Mongo indexes (`note_id` unique, `owner_id`) before serving.
@@ -58,34 +61,32 @@ Backend settings come from environment or `.env`:
 ### Data Flow
 ```mermaid
 flowchart TD
-    user[User] --> ui[Frontend React + Vite]
-    ui -->|HTTPS JSON| api[FastAPI Backend]
+    user[User] --> ui[Frontend (React/Vite)]
+    ui -->|HTTPS JSON| api[FastAPI app]
 
-    subgraph REST API
-        api --> notes[Notes Router CRUD Operations]
-        notes --> repo[Note Repository Motor Driver]
-        repo --> mongo[(MongoDB Database)]
+    subgraph rest [REST]
+        api --> notes[NotesRouter (CRUD /notes)]
+        notes --> repo[NoteRepository (Motor)]
+        repo --> mongo[(MongoDB)]
         mongo --> ui
     end
 
-    subgraph File Uploads
-        api --> presign[Generate Upload URL]
-        presign --> storage[S3 Presigned URL or Local Static Storage]
+    subgraph uploads [Uploads]
+        api --> presign[POST /notes/presign]
+        presign --> storage[S3 presigned URL or Local /static]
         storage --> ui
-        api --> upload[Local Upload Endpoint]
+        api --> upload[PUT /notes/upload/{key} (local)]
     end
 
-    subgraph AI Services
-        api --> ai[AI Router]
-        ai --> summarize[Summarize Text]
-        ai --> ocr[OCR Image]
-        ai --> transcribe[Transcribe Audio]
-
-        summarize --> openai[OpenAI API]
-        ocr --> openai
-        transcribe --> openai
-
-        ai --> repo
+    subgraph ai [AI]
+        api --> aiRouter[AIRouter (/ai/summarize · /ai/ocr · /ai/transcribe)]
+        aiRouter --> summarize[Summarize]
+        aiRouter --> ocr[OCR]
+        aiRouter --> transcribe[Transcribe]
+        summarize --> gemini[Gemini API]
+        ocr --> gemini
+        transcribe --> gemini
+        aiRouter --> repo
     end
 ```
 

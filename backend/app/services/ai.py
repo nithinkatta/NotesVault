@@ -1,38 +1,35 @@
 from __future__ import annotations
 
 import json
-from io import BytesIO
 
 import httpx
-from openai import AsyncOpenAI
+import google.generativeai as genai
 
 from app.config import Settings
 
 
-def _client(settings: Settings) -> AsyncOpenAI:
-    return AsyncOpenAI(api_key=settings.openai_api_key)
+def _model(settings: Settings):
+    """Return configured Gemini model instance."""
+    genai.configure(api_key=settings.gemini_api_key)
+    return genai.GenerativeModel(settings.gemini_model)
 
 
 async def summarize_text(settings: Settings, content: str) -> dict:
     """Return summary and keywords for provided text content."""
-    client = _client(settings)
-    response = await client.chat.completions.create(
-        model=settings.openai_model,
-        temperature=0.2,
-        messages=[
-            {
-                "role": "system",
-                "content": (
-                    "Summarize the user-provided note into 2-3 sentences and extract 5-8 "
-                    "relevant keywords. Respond as JSON with keys 'summary' and 'keywords'."
-                ),
-            },
-            {"role": "user", "content": content},
-        ],
-        response_format={"type": "json_object"},
+    model = _model(settings)
+    prompt = (
+        "Summarize the user-provided note into 2-3 sentences and extract 5-8 relevant "
+        "keywords. Respond strictly as JSON with keys 'summary' and 'keywords'."
     )
-    raw = response.choices[0].message.content or "{}"
-    parsed = json.loads(raw)
+    response = await model.generate_content_async(
+        [{"text": prompt}, {"text": content}],
+        generation_config={"temperature": 0.2},
+    )
+    raw = response.text or "{}"
+    try:
+        parsed = json.loads(raw)
+    except json.JSONDecodeError:
+        parsed = {"summary": raw.strip(), "keywords": []}
     return {
         "summary": parsed.get("summary", "").strip(),
         "keywords": parsed.get("keywords", []),
@@ -41,40 +38,37 @@ async def summarize_text(settings: Settings, content: str) -> dict:
 
 async def perform_ocr(settings: Settings, image_url: str) -> str:
     """Extract text from an image URL using a vision model."""
-    client = _client(settings)
-    response = await client.chat.completions.create(
-        model=settings.openai_model,
-        temperature=0,
-        messages=[
-            {
-                "role": "system",
-                "content": "Extract all visible text from the provided image.",
-            },
-            {
-                "role": "user",
-                "content": [
-                    {"type": "text", "text": "Extract the text from this image."},
-                    {"type": "image_url", "image_url": {"url": image_url}},
-                ],
-            },
+    async with httpx.AsyncClient(timeout=60.0) as client:
+        resp = await client.get(image_url)
+        resp.raise_for_status()
+        image_bytes = resp.content
+        mime_type = resp.headers.get("content-type", "image/png")
+
+    model = _model(settings)
+    response = await model.generate_content_async(
+        [
+            {"text": "Extract all visible text from the provided image. Return only the text."},
+            {"mime_type": mime_type, "data": image_bytes},
         ],
+        generation_config={"temperature": 0},
     )
-    return (response.choices[0].message.content or "").strip()
+    return (response.text or "").strip()
 
 
 async def transcribe_audio(settings: Settings, audio_url: str) -> str:
-    """Transcribe audio from a URL using Whisper."""
+    """Transcribe audio from a URL using Gemini."""
     async with httpx.AsyncClient(timeout=60.0) as client:
         resp = await client.get(audio_url)
         resp.raise_for_status()
         audio_bytes = resp.content
+        mime_type = resp.headers.get("content-type", "audio/mpeg")
 
-    audio_file = BytesIO(audio_bytes)
-    audio_file.name = "upload_audio.mp3"
-
-    client = _client(settings)
-    transcription = await client.audio.transcriptions.create(
-        model="whisper-1",
-        file=audio_file,
+    model = _model(settings)
+    response = await model.generate_content_async(
+        [
+            {"text": "Transcribe the audio content into text. Return only the transcription."},
+            {"mime_type": mime_type, "data": audio_bytes},
+        ],
+        generation_config={"temperature": 0},
     )
-    return transcription.text.strip()
+    return (response.text or "").strip()

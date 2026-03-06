@@ -43,7 +43,7 @@ middleware --> client
 
 ## Dependency Injection Patterns
 - **Per-request resources**: DB session, current user, settings.
-- **Shared singletons**: clients (OpenAI, HTTPX) cached with `lru_cache`.
+- **Shared singletons**: clients (Gemini, HTTPX) cached with `lru_cache`.
 - **Callable signatures**:
   ```python
   def get_settings():

@@ -3,7 +3,7 @@ uvicorn[standard]
 pydantic-settings
 boto3
 python-multipart
-openai
+google-generativeai
 httpx
 pytest
 motor

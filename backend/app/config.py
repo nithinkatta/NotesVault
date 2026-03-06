@@ -20,9 +20,9 @@ class Settings(BaseSettings):
 
     # API + AI
     api_base_url: str = "http://localhost:8000"
-    # Provide via environment: OPENAI_API_KEY
-    openai_api_key: str = ""
-    openai_model: str = "gpt-4o-mini"
+    # Provide via environment: GEMINI_API_KEY
+    gemini_api_key: str = "AIzaSyDB2WUgpwQ68kc25BcAO4ERkhbVqC-_xDU"
+    gemini_model: str = "gemini-3-flash-preview"
     allowed_origins: List[str] = ["http://localhost:5173"]
     environment: str = "local"
 
