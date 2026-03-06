@@ -239,7 +239,7 @@ function App() {
       <header className="header">
         <div>
           <h1>AI Notes Vault</h1>
-          <p className="muted">FastAPI + React + AWS + OpenAI</p>
+          <p className="muted">FastAPI + React + MongoDB + Gemini</p>
         </div>
         <div className="status">
           {loading && <span>Loading...</span>}
