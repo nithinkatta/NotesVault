@@ -58,28 +58,34 @@ Backend settings come from environment or `.env`:
 ### Data Flow
 ```mermaid
 flowchart TD
-    User --> UI[Frontend (React/Vite)]
-    UI -->|HTTPS JSON| API[FastAPI app]
+    user[User] --> ui[Frontend React + Vite]
+    ui -->|HTTPS JSON| api[FastAPI Backend]
 
-    subgraph REST
-      API --> NotesRouter[/Routes: GET/POST/PATCH/DELETE /notes/]
-      NotesRouter -->|Pydantic validation + Depends| Repo[NoteRepository (Motor)]
-      Repo --> MongoDB[(MongoDB)]
-      MongoDB --> UI
+    subgraph REST API
+        api --> notes[Notes Router CRUD Operations]
+        notes --> repo[Note Repository Motor Driver]
+        repo --> mongo[(MongoDB Database)]
+        mongo --> ui
     end
 
-    subgraph Uploads
-      API --> Presign[/Route: POST /notes/presign/]
-      Presign --> Storage[S3 presigned URL or Local /static]
-      Storage --> UI
-      API --> Upload[/Route: PUT /notes/upload/{key}/ (local mode)/]
+    subgraph File Uploads
+        api --> presign[Generate Upload URL]
+        presign --> storage[S3 Presigned URL or Local Static Storage]
+        storage --> ui
+        api --> upload[Local Upload Endpoint]
     end
 
-    subgraph AI
-      API --> AIRouter[/Routes: /ai/summarize · /ai/ocr · /ai/transcribe/]
-      AIRouter --> OpenAI[OpenAI API]
-      OpenAI --> UI
-      AIRouter --> Repo
+    subgraph AI Services
+        api --> ai[AI Router]
+        ai --> summarize[Summarize Text]
+        ai --> ocr[OCR Image]
+        ai --> transcribe[Transcribe Audio]
+
+        summarize --> openai[OpenAI API]
+        ocr --> openai
+        transcribe --> openai
+
+        ai --> repo
     end
 ```
 
