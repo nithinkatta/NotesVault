@@ -33,7 +33,7 @@ def create_presigned_upload(
     prefix = f"notes/{note_id}" if note_id else "notes/misc"
     key = f"{prefix}/{uuid4()}-{file_name}"
 
-    if settings.use_local_store:
+    if settings.use_local_uploads:
         upload_url = f"{settings.api_base_url}/notes/upload/{key}"
         object_url = f"{settings.api_base_url}/static/{key}"
         return PresignedUpload(

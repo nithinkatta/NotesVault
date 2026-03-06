@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.config import get_settings
+from app.db.mongo import init_indexes
 from app.routers import ai, notes
 
 
@@ -37,3 +38,8 @@ def healthcheck() -> dict[str, str]:
 
 app.include_router(notes.router, prefix="/notes", tags=["notes"])
 app.include_router(ai.router, prefix="/ai", tags=["ai"])
+
+
+@app.on_event("startup")
+async def startup() -> None:
+    await init_indexes(settings)
