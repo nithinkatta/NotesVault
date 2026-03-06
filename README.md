@@ -62,24 +62,24 @@ flowchart TD
     UI -->|HTTPS JSON| API[FastAPI app]
 
     subgraph REST
-        API --> NotesRouter[Routes: GET/POST/PATCH/DELETE /notes]
-        NotesRouter -->|Pydantic validation + Depends| Repo[NoteRepository (Motor)]
-        Repo --> MongoDB[(MongoDB)]
-        MongoDB --> UI
+      API --> NotesRouter[/Routes: GET/POST/PATCH/DELETE /notes/]
+      NotesRouter -->|Pydantic validation + Depends| Repo[NoteRepository (Motor)]
+      Repo --> MongoDB[(MongoDB)]
+      MongoDB --> UI
     end
 
     subgraph Uploads
-        API --> Presign[POST /notes/presign]
-        Presign --> Storage[S3 presigned URL or Local /static]
-        Storage --> UI
-        API --> Upload[PUT /notes/upload/{key} (local mode)]
+      API --> Presign[/Route: POST /notes/presign/]
+      Presign --> Storage[S3 presigned URL or Local /static]
+      Storage --> UI
+      API --> Upload[/Route: PUT /notes/upload/{key}/ (local mode)/]
     end
 
     subgraph AI
-        API --> AIRouter[Routes: /ai/summarize, /ai/ocr, /ai/transcribe]
-        AIRouter --> OpenAI[OpenAI API]
-        OpenAI --> UI
-        AIRouter --> Repo
+      API --> AIRouter[/Routes: /ai/summarize · /ai/ocr · /ai/transcribe/]
+      AIRouter --> OpenAI[OpenAI API]
+      OpenAI --> UI
+      AIRouter --> Repo
     end
 ```
 
